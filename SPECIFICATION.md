@@ -1,11 +1,14 @@
-# YSS Spec Suite
+# YSS Implementation Guide
 
-Language-agnostic test suite for the YSS (YAML Simplified Schema) specification.
-To run these specs against a YSS implementation, write a runner in your language of choice — see [Implementing a runner](#implementing-a-runner) below.
+This repository provides a language-agnostic test suite for the **YSS (YAML Simplified Schema)**
+specification. Any YSS implementation (validator/parser) should pass these tests to ensure
+compatibility with the standard.
 
----
+To run these specs, you must implement a **test runner** in your language of choice.
 
-## Structure
+<br>
+
+## Directory Structure
 
 ```
 specs/
@@ -20,7 +23,7 @@ specs/
       *.yaml              — auxiliary schemas imported by schema.yaml
 ```
 
----
+<br>
 
 ## Spec format
 
@@ -80,7 +83,7 @@ scenarios:
     then: []
 ```
 
----
+<br>
 
 ## Error object format
 
@@ -97,7 +100,7 @@ Each error in `then` is compared against the actual validator output:
 
 Comparison uses deep equality. The actual error must contain exactly the same keys and values as specified — partial matching is not used.
 
----
+<br>
 
 ## Error code templates
 
@@ -111,7 +114,7 @@ CODE_PROP_REQUIRED: prop_required
 
 Spec files reference these constants via `{{ CODE_TYPE_MISMATCH }}` placeholders instead of literal strings. The runner is responsible for resolving them before comparing.
 
----
+<br>
 
 ## Implementing a runner
 
@@ -162,8 +165,8 @@ N passed, N failed, N skipped
 
 Exit with a non-zero code if any test failed.
 
----
+<br>
 
 ## Reference implementation
 
-See [`scripts/run-specs.js`](../scripts/run-specs.js) for the JavaScript runner.
+**See** [yss-js spec-runner](https://github.com/alxmagro/yss-js/blob/main/scripts/run-specs.js)

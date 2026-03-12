@@ -15,15 +15,6 @@ It is designed to be simple to read, simple to write, and simple to implement in
 
 <br>
 
-## Core principles
-
-- Every field is **optional by default**. Use `$required` to mark required fields.
-- Every object is **open by default**. Use `$strict` to reject extra fields.
-- Fields and rules are additive — the more you declare, the stricter the validation.
-- The schema should be readable by non-developers without explanation.
-
-<br>
-
 ## Types
 
 | Type      | Validates                              |
@@ -48,6 +39,9 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$type`    | any                     | The type of the field                              |
 | `$required`| object                  | List of required field names                       |
 | `$strict`  | object                  | Reject extra fields. Cascades to nested objects    |
+| `$item`    | array                   | Schema applied to every item                       |
+| `$at`      | array                   | Schema applied per position index                  |
+| `$unique`  | array                   | No duplicate items allowed                         |
 | `$size`    | string, array, object   | Exact size or `[min, max]` range (null = unbound)  |
 | `$gt`      | integer, number         | Value must be > n                                  |
 | `$gte`     | integer, number         | Value must be >= n                                 |
@@ -56,25 +50,61 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$format`  | string                  | Named alias or `/regex/` the value must match      |
 | `$enum`    | any                     | List of allowed values                             |
 | `$const`   | any                     | Exact value match                                  |
-| `$unique`  | array                   | No duplicate items allowed                         |
-| `$item`    | array                   | Schema applied to every item                       |
-| `$at`      | array                   | Schema applied per position index                  |
+| `$any_of`  | any                     | Value must match at least one of the listed schemas|
 
 <br>
 
-## Object
+### $type
+
+`$type` is the most basic rule — it defines what kind of value a field accepts.
+It is always evaluated first, and if it fails, no other rules are checked for that field.
+The simplest form is a bare type name:
+
+```yaml
+name: string
+```
+
+This validates that `name` is a string:
+
+```json
+"Hello World"
+```
+
+To accept more than one type, separate them with `|`:
+
+```yaml
+name: string | null
+```
+
+**Any**
+
+`$type` is not required. Omitting it is perfectly valid, all other rules will still
+run normally. Alternatively, you can declare a field as `any`, which explicitly skips type checking
+while keeping the field visible in the schema for documentation purposes:
+
+```yaml
+metadata: any
+```
+
+**Objects**
 
 Object schemas are declared by nesting field definitions. The type `object` is inferred
 automatically — no `$type: object` needed.
 
 ```yaml
-address:
-  street: string
-  city: string
-  country: string
+product:
+  name: string
+  price: number
+  stock: integer
+  available: boolean
 ```
 
-Fields are optional by default. Mark required ones with `$required`:
+<br>
+
+### $required
+
+By default, every field in an object is optional, if it's absent from the payload,
+no error is raised. Use `$required` to list the fields that must be present:
 
 ```yaml
 user:
@@ -86,10 +116,13 @@ user:
   phone: string      # optional
 ```
 
-### Strict mode
+<br>
 
-By default, objects allow extra fields not declared in the schema. To reject them,
-add `$strict: true`. This cascades to all nested objects unless overridden.
+### $strict
+
+Objects are open by default — fields not declared in the schema are simply ignored.
+Add `$strict: true` to reject any unexpected fields. This cascades to all nested objects
+unless overridden.
 
 ```yaml
 user:
@@ -113,66 +146,209 @@ user:
 
 <br>
 
-## Array
+### $item
+
+Array schemas are declared with `$type: array`. The rule `$item` is useful to define the rules
+applied to every element in the array:
 
 ```yaml
 emails:
   $type: array
-  $size: [1, 20]
-  $item:
-    $type: string
-    $format: email
+  $item: string
 ```
 
-### Unique items
+When the item has no extra rules, you can write it inline using the generic type notation:
 
 ```yaml
-roles:
-  $type: array
-  $unique: true
-  $item:
-    $type: string
-    $enum: [admin, editor, viewer]
+emails: array<string>
 ```
 
-### Positional validation (`$at`)
+<br>
 
-Validates specific positions by index. If the array is shorter than a declared index,
-that position is skipped.
+### $at
+
+If you need different rules per position, use `$at` instead. Each key is an index and the value
+is the schema for that position. Positions not declared are not validated, so the array can be
+longer without errors:
 
 ```yaml
 point:
   $type: array
   $at:
-    0: number   # x
-    1: number   # y
-    2: number   # z (optional, skipped if absent)
+    0: integer
+    1: integer
+    2: string   # description
 ```
 
 <br>
 
-## Union (`$any_of`)
+### $unique
 
-The value must match at least one of the listed branches.
+To ensure no two elements are the same, set `$unique: true`:
 
 ```yaml
-id:
-  $any_of:
-    - integer
-    - string
+tags:
+  $type: array
+  $unique: true
+  $item: string
 ```
 
-Branches can include full rule blocks. Fields declared alongside `$any_of` are merged
-into every branch:
+You can also write it using inline syntax by adding `unique` as a modifier after a comma:
+
+```yaml
+tags: array<string>, unique
+```
+
+<br>
+
+### $size
+
+Use `$size` to constrain how many elements an array can have. It accepts an exact number or a
+`[min, max]` range, where `~` (null) means unbound:
+
+```yaml
+emails:
+  $type: array
+  $size: [1, 10]
+  $item: string
+```
+
+Combined with `$at`, you can enforce a fixed-length array — a tuple — where each position has its
+own type:
+
+```yaml
+rgb:
+  $type: array
+  $size: 3
+  $at:
+    0: integer   # red
+    1: integer   # green
+    2: integer   # blue
+```
+
+`$size` also applies to strings as character count, and objects as number of keys.
+
+To write it in inline syntax, add `size` as a modifier after a comma:
+
+```yaml
+tags: array<string>, size [1, ~]
+```
+
+<br>
+
+### $gt, $gte, $lt, $lte
+
+These rules constrain the value of a numeric field. They apply to both `integer` and `number` types:
+
+```yaml
+age:
+  $type: integer
+  $gte: 18
+  $lte: 120
+
+price:
+  $type: number
+  $gt: 0
+```
+
+You can also write them inline:
+
+```yaml
+age:   integer, >= 18, <= 120
+price: number, > 0
+```
+
+<br>
+
+### $format
+
+Validates that a string matches a named format. YSS ships with built-in aliases for common formats like emails, dates, UUIDs, and URLs:
+
+```yaml
+email:
+  $type: string
+  $format: email
+
+slug:
+  $type: string
+  $format: /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+```
+
+To write it inline, use the `~` modifier. Note that inline only accepts named aliases, not raw regex:
+
+```yaml
+email: string, ~ email
+```
+
+**Built-in aliases**
+
+| Category       | Aliases                                          |
+|----------------|--------------------------------------------------|
+| Dates & times  | `date-time`, `date`, `time`, `duration`          |
+| Email          | `email`, `idn-email`                             |
+| Hostname       | `hostname`, `idn-hostname`                       |
+| IP addresses   | `ipv4`, `ipv6`                                   |
+| URIs           | `uri`, `uri-reference`, `iri`                    |
+| Other          | `uuid`, `json-pointer`, `regex`                  |
+
+**$patterns**
+
+You can define your own named formats at the root of the schema under `$patterns`.
+Each entry is a named `/regex/` that can be used anywhere `$format` is accepted:
+
+```yaml
+$patterns:
+  zip-code: /^\d{5}-?\d{3}$/
+  phone:    /^\+?[0-9]{10,11}$/
+
+address:
+  zip:
+    $type: string
+    $format: zip-code
+  contact: string, ~ phone
+```
+
+<br>
+
+### $enum, $const
+
+Use `$enum` to restrict a field to a list of allowed values:
+
+```yaml
+status:
+  $type: string
+  $enum: [active, inactive, banned]
+```
+
+If you need a field to match one specific value exactly, `$const` is the right tool:
+
+```yaml
+version:
+  $const: 1
+```
+
+Both can be written inline:
+
+```yaml
+status:  string, enum [active, inactive, banned]
+version: any, == 1
+```
+
+<br>
+
+### $any_of
+
+When a field can take more than one valid shape, `$any_of` lets you declare each possibility as a
+separate branch. The value is valid if it matches at least one of them:
 
 ```yaml
 user:
   name: string
   email: string
-  country: String
+  country: string
 
   $any_of:
-    - country: String, == US
+    - country: string, == US
     - shipping:
         $required: [method, cost]
         method: string, enum [standard, express, pickup]
@@ -183,64 +359,12 @@ user:
           status: string, enum [pending, shipped, delivered, returned]
 ```
 
-<br>
-
-## Inline syntax
-
-When a field has only `$type`, it can be written as a bare value:
-
-```yaml
-name: string
-active: boolean
-```
-
-Constraints can be added inline as comma-separated modifiers after the type:
-
-```yaml
-field: type, modifier value, modifier value
-```
-
-Available modifiers:
-
-| Modifier      | Equivalent     | Example                              |
-|---------------|----------------|--------------------------------------|
-| `~ alias`     | `$format`      | `string, ~ email`                    |
-| `== value`    | `$const`       | `string, == admin`                   |
-| `>= n`        | `$gte`         | `integer, >= 18`                     |
-| `> n`         | `$gt`          | `number, > 0`                        |
-| `<= n`        | `$lte`         | `integer, <= 100`                    |
-| `< n`         | `$lt`          | `number, < 1000`                     |
-| `size n`      | `$size` (exact)| `string, size 4`                     |
-| `size [n, m]` | `$size` (range)| `string, size [~, 80]`               |
-| `enum [a, b]` | `$enum`        | `string, enum [active, inactive]`    |
-| `uniq`        | `$unique: true`| `array, uniq`                        |
-
-### Union types
-
-```yaml
-id: string | integer
-deleted_at: string | null
-```
-
-### Generic array syntax
-
-```yaml
-tags:  array<string>
-ids:   array<integer>
-```
-
-### Combining modifiers
-
-```yaml
-name:   string, size [2, 80]
-email:  string, ~ email
-status: string, enum [active, inactive, banned]
-score:  integer, >= 0, <= 100
-```
+Fields declared alongside `$any_of` are merged into every branch. If the same field appears both
+outside and inside a branch, the branch definition takes precedence — the more specific rule wins.
 
 <br>
 
-## Schema reuse (YAML anchors)
+## Schema reuse with YAML anchors
 
 Within the same file, use native YAML anchors to avoid repeating structures:
 
@@ -258,7 +382,7 @@ user:
 
 <br>
 
-## Modular schemas (`$imports` / `$ref`)
+## Modular schemas
 
 Schemas can be split across files. Each imported file is compiled in isolation.
 
@@ -271,6 +395,8 @@ $imports:
   user:   ./user.yaml
   shared: ./shared/types.yaml
 ```
+
+<br>
 
 ### $ref
 
@@ -292,6 +418,8 @@ items:
   $item:
     $ref: post.data
 ```
+
+<br>
 
 ### $patterns across files
 
@@ -315,135 +443,14 @@ slug:
 
 <br>
 
-## Custom format aliases (`$patterns`)
+## Implementation Guide
 
-Named patterns can be declared at the root under `$patterns`. Each pattern is a `/regex/`
-string and can be used anywhere `$format` is accepted.
-
-```yaml
-$patterns:
-  zip-code: /^\d{5}-?\d{3}$/
-  phone: /^\+?[0-9]{10,11}$/
-
-address:
-  zip:
-    $type: string
-    $format: zip-code
-  contact: string, ~ phone
-```
+To implement a YSS parser or validator in any language, see [SPECIFICATION.md](SPECIFICATION.md).
 
 <br>
 
-## Built-in format aliases
+## License
 
-### Dates & Times — RFC 3339
+[MIT](http://opensource.org/licenses/MIT)
 
-| Alias       | Example                |
-|-------------|------------------------|
-| `date-time` | `2024-01-01T00:00:00Z` |
-| `date`      | `2024-01-01`           |
-| `time`      | `14:30:00Z`            |
-| `duration`  | `P3D`, `PT1H30M`       |
-
-### Email
-
-| Alias       | Description                         |
-|-------------|-------------------------------------|
-| `email`     | Standard email address (RFC 5321)   |
-| `idn-email` | Email with international characters |
-
-### Hostname
-
-| Alias          | Example       |
-|----------------|---------------|
-| `hostname`     | `example.com` |
-| `idn-hostname` | `münchen.de`  |
-
-### IP Addresses
-
-| Alias  | Example         |
-|--------|-----------------|
-| `ipv4` | `192.168.0.1`   |
-| `ipv6` | `2001:db8::1`   |
-
-### Resource Identifiers
-
-| Alias           | Example                      |
-|-----------------|------------------------------|
-| `uri`           | `https://example.com/path`   |
-| `uri-reference` | `/relative/path` or full URI |
-| `iri`           | URI with international chars |
-
-### UUID — RFC 4122
-
-| Alias  | Example                                |
-|--------|----------------------------------------|
-| `uuid` | `550e8400-e29b-41d4-a716-446655440000` |
-
-### JSON Pointer — RFC 6901
-
-| Alias          | Example      |
-|----------------|--------------|
-| `json-pointer` | `/foo/bar/0` |
-
-### Regex
-
-| Alias   | Description                       |
-|---------|-----------------------------------|
-| `regex` | A valid regular expression string |
-
-<br>
-
-## Full example
-
-```yaml
-# order.yaml
-
-$imports:
-  fmt: ./formats.yaml
-
-$required: [id, customer, items]
-
-id: string, ~ uuid
-created_at: string | null
-
-customer:
-  $strict: true
-  $required: [id, name, email]
-  id: integer, >= 1
-  name: string, size [2, 80]
-  email: string, ~ email
-  phones:
-    $type: array
-    $size: [1, ~]
-    $item: string, ~ fmt.phone
-
-items:
-  $type: array
-  $size: [1, 50]
-  $item:
-    $required: [id, name, qty, price]
-    id: integer, >= 1
-    name: string, size [1, 100]
-    qty: integer, >= 1, <= 9999
-    price: number, > 0
-    tags:
-      $type: array
-      $unique: true
-      $item: string, enum [fragile, perishable, digital, oversized]
-    dimensions:
-      $type: array
-      $at:
-        0: number   # width
-        1: number   # height
-        2: number   # depth
-
-shipping:
-  $required: [method, cost]
-  method: string, enum [standard, express, pickup]
-  cost: number, >= 0
-  tracking:
-    code: string
-    carrier: string
-    status: string, enum [pending, shipped, delivered, returned]
-```
+Copyright (c) 2026-present, Alexandre Magro
