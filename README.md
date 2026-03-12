@@ -364,6 +364,28 @@ outside and inside a branch, the branch definition takes precedence — the more
 
 <br>
 
+### Inline syntax
+
+Throughout this guide you've seen rules written inline alongside the type — a shorthand that keeps
+simple schemas compact. Here's a summary of every rule that supports it:
+
+| Inline modifier     | Equivalent rule       |
+|---------------------|-----------------------|
+| `Type1 \| Type2`   | `$type: [Type1, Type2]` |
+| `array<Type>`       | `$type: array` + `$item: Type` |
+| `>= n`              | `$gte: n`             |
+| `> n`               | `$gt: n`              |
+| `<= n`              | `$lte: n`             |
+| `< n`               | `$lt: n`              |
+| `size n`            | `$size: n`            |
+| `size [min, max]`   | `$size: [min, max]`   |
+| `~ alias`           | `$format: alias`      |
+| `enum [a, b]`       | `$enum: [a, b]`       |
+| `== val`            | `$const: val`         |
+| `unique`            | `$unique: true`       |
+
+<br>
+
 ## Schema reuse with YAML anchors
 
 Within the same file, use native YAML anchors to avoid repeating structures:
