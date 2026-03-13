@@ -41,6 +41,7 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$strict`  | object                  | Reject extra fields. Cascades to nested objects    |
 | `$item`    | array                   | Schema applied to every item                       |
 | `$at`      | array                   | Schema applied per position index                  |
+| `$contains`| array                   | One or more items must match a schema              |
 | `$unique`  | array                   | No duplicate items allowed                         |
 | `$size`    | string, array, object   | Exact size or `[min, max]` range (null = unbound)  |
 | `$gt`      | integer, number         | Value must be > n                                  |
@@ -178,6 +179,74 @@ point:
     0: integer
     1: integer
     2: string   # description
+```
+
+<br>
+
+### $contains
+
+Use `$contains` to require that at least one item in the array matches a given schema.
+The simplest form uses an inline rule directly:
+
+```yaml
+tags:
+  $type: array
+  $contains: string, == featured
+```
+
+For object items, pass the matching schema as a nested block:
+
+```yaml
+members:
+  $type: array
+  $contains:
+    role: string, == owner
+```
+
+Both forms default to requiring **at least one** matching item. To control the exact count,
+add `$quantity` alongside `$item`:
+
+```yaml
+# exactly 2 matches
+tags:
+  $type: array
+  $contains:
+    $quantity: 2
+    $item: string, == featured
+
+# at least 2 matches
+party:
+  $type: array
+  $contains:
+    $quantity: [2, ~]
+    $item:
+      race: string, == hobbit
+
+# at most 1 match
+crew:
+  $type: array
+  $contains:
+    $quantity: [~, 1]
+    $item:
+      side: string, == dark
+
+# between 2 and 4 matches
+council:
+  $type: array
+  $contains:
+    $quantity: [2, 4]
+    $item:
+      rank: string, == master
+```
+
+Setting `$quantity: 0` means the array must **not** contain any matching item:
+
+```yaml
+flags:
+  $type: array
+  $contains:
+    $quantity: 0
+    $item: string, == banned
 ```
 
 <br>
