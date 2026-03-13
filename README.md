@@ -53,6 +53,7 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$const`   | any                     | Exact value match                                  |
 | `$any_of`  | any                     | Value must match at least one of the listed schemas|
 | `$one_of`  | any                     | Value must match exactly one of the listed schemas |
+| `$all_of`  | any                     | Value must match all of the listed schemas         |
 
 <br>
 
@@ -456,6 +457,34 @@ shipment:
 ```
 
 A value with both `delivery` and `pickup` present would be rejected — only one shape is allowed at a time.
+
+<br>
+
+### $all_of
+
+Use `$all_of` when a value must satisfy **all** of the listed schemas at once. This is useful in two situations.
+
+The first is when you need to apply the same rule more than once with different arguments — something YAML doesn't allow with duplicate keys:
+
+```yaml
+tags:
+  $type: array
+  $all_of:
+    - $contains: string, == featured
+    - $contains: string, == sale
+```
+
+The second is schema composition, where each branch comes from a separate file via `$ref`:
+
+```yaml
+character:
+  $all_of:
+    - $ref: identity
+    - $ref: combat
+    - $ref: origin
+```
+
+> `$ref` and modular schemas are covered in detail further below.
 
 <br>
 
