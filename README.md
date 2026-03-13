@@ -52,6 +52,7 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$enum`    | any                     | List of allowed values                             |
 | `$const`   | any                     | Exact value match                                  |
 | `$any_of`  | any                     | Value must match at least one of the listed schemas|
+| `$one_of`  | any                     | Value must match exactly one of the listed schemas |
 
 <br>
 
@@ -430,6 +431,31 @@ user:
 
 Fields declared alongside `$any_of` are merged into every branch. If the same field appears both
 outside and inside a branch, the branch definition takes precedence — the more specific rule wins.
+
+<br>
+
+### $one_of
+
+`$one_of` works exactly like `$any_of`, but requires the value to match **exactly one** branch.
+If more than one branch matches, validation fails:
+
+```yaml
+shipment:
+  $one_of:
+    - $required: [delivery]
+      delivery:
+        $required: [address]
+        address: string
+        carrier: string
+        status: string, enum [pending, shipped, delivered, returned]
+    - $required: [pickup]
+      pickup:
+        $required: [location]
+        location: string
+        slot: string
+```
+
+A value with both `delivery` and `pickup` present would be rejected — only one shape is allowed at a time.
 
 <br>
 
