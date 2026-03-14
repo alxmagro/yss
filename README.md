@@ -49,7 +49,8 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$lt`      | integer, number         | Value must be < n                                  |
 | `$lte`     | integer, number         | Value must be <= n                                 |
 | `$format`  | string                  | Named alias or `/regex/` the value must match      |
-| `$enum`    | any                     | List of allowed values                             |
+| `$in`      | any                     | Value must be one of the listed values             |
+| `$not_in`  | any                     | Value must not be any of the listed values         |
 | `$const`   | any                     | Exact value match                                  |
 | `$any_of`  | any                     | Value must match at least one of the listed schemas|
 | `$one_of`  | any                     | Value must match exactly one of the listed schemas |
@@ -381,14 +382,22 @@ address:
 
 <br>
 
-### $enum, $const
+### $in, $not_in, $const
 
-Use `$enum` to restrict a field to a list of allowed values:
+Use `$in` to restrict a field to a list of allowed values:
 
 ```yaml
 status:
   $type: string
-  $enum: [active, inactive, banned]
+  $in: [active, inactive, banned]
+```
+
+Use `$not_in` to reject specific values:
+
+```yaml
+role:
+  $type: string
+  $not_in: [admin, root]
 ```
 
 If you need a field to match one specific value exactly, `$const` is the right tool:
@@ -398,10 +407,11 @@ version:
   $const: 1
 ```
 
-Both can be written inline:
+All three can be written inline:
 
 ```yaml
-status:  string, enum [active, inactive, banned]
+status:  string, in [active, inactive, banned]
+role:    string, not_in [admin, root]
 version: any, == 1
 ```
 
@@ -420,14 +430,15 @@ user:
 
   $any_of:
     - country: string, == US
-    - shipping:
+    - $required: [shipping]
+      shipping:
         $required: [method, cost]
-        method: string, enum [standard, express, pickup]
+        method: string, in [standard, express, pickup]
         cost: number, >= 0
         tracking:
           code: string
           carrier: string
-          status: string, enum [pending, shipped, delivered, returned]
+          status: string, in [pending, shipped, delivered, returned]
 ```
 
 Fields declared alongside `$any_of` are merged into every branch. If the same field appears both
@@ -448,7 +459,7 @@ shipment:
         $required: [address]
         address: string
         carrier: string
-        status: string, enum [pending, shipped, delivered, returned]
+        status: string, in [pending, shipped, delivered, returned]
     - $required: [pickup]
       pickup:
         $required: [location]
@@ -464,7 +475,7 @@ A value with both `delivery` and `pickup` present would be rejected — only one
 
 Use `$all_of` when a value must satisfy **all** of the listed schemas at once. This is useful in two situations.
 
-The first is when you need to apply the same rule more than once with different arguments — something YAML doesn't allow with duplicate keys:
+The first is when you need to apply the same rule more than once with different arguments:
 
 ```yaml
 tags:
@@ -504,7 +515,8 @@ simple schemas compact. Here's a summary of every rule that supports it:
 | `size n`            | `$size: n`            |
 | `size [min, max]`   | `$size: [min, max]`   |
 | `~ alias`           | `$format: alias`      |
-| `enum [a, b]`       | `$enum: [a, b]`       |
+| `in [a, b]`         | `$in: [a, b]`         |
+| `not_in [a, b]`     | `$not_in: [a, b]`     |
 | `== val`            | `$const: val`         |
 | `unique`            | `$unique: true`       |
 

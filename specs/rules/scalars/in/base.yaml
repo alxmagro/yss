@@ -1,0 +1,61 @@
+feature: $in validation
+
+given:
+  status: string, in [active, inactive, pending]
+  priority: integer, in [1, 2, 3]
+  level:
+    $type: string
+    $in: [low, medium, high]
+
+scenarios:
+  - name: optional fields absent
+    when: {}
+    then: []
+
+  - name: value matches allowed string
+    when:
+      status: active
+    then: []
+
+  - name: value matches allowed integer
+    when:
+      priority: 2
+    then: []
+
+  - name: value matches allowed string via block syntax
+    when:
+      level: high
+    then: []
+
+  - name: string value not in allowed list
+    when:
+      status: cancelled
+    then:
+      - path: status
+        code: "{{ CODE_IN_INVALID }}"
+        message: Value `cancelled` is not allowed
+        data:
+          value: cancelled
+          in: [active, inactive, pending]
+
+  - name: integer value not in allowed list
+    when:
+      priority: 5
+    then:
+      - path: priority
+        code: "{{ CODE_IN_INVALID }}"
+        message: Value `5` is not allowed
+        data:
+          value: 5
+          in: [1, 2, 3]
+
+  - name: block syntax value not in allowed list
+    when:
+      level: critical
+    then:
+      - path: level
+        code: "{{ CODE_IN_INVALID }}"
+        message: Value `critical` is not allowed
+        data:
+          value: critical
+          in: [low, medium, high]
