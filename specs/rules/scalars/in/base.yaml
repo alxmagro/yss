@@ -32,7 +32,7 @@ scenarios:
       status: cancelled
     then:
       - path: status
-        code: "{{ CODE_IN_INVALID }}"
+        code: "{{ CODE_IN }}"
         message: Value `cancelled` is not allowed
         data:
           value: cancelled
@@ -43,7 +43,7 @@ scenarios:
       priority: 5
     then:
       - path: priority
-        code: "{{ CODE_IN_INVALID }}"
+        code: "{{ CODE_IN }}"
         message: Value `5` is not allowed
         data:
           value: 5
@@ -54,7 +54,7 @@ scenarios:
       level: critical
     then:
       - path: level
-        code: "{{ CODE_IN_INVALID }}"
+        code: "{{ CODE_IN }}"
         message: Value `critical` is not allowed
         data:
           value: critical
