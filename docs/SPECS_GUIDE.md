@@ -14,8 +14,9 @@ To run these specs, you must implement a **test runner** in your language of cho
 specs/
   codes.yaml              — error code constants referenced in specs via {{ CODE_* }} templates
   rules/
-    scalars/              — scalar rule specs (type, size, enum, format, ...)
-    composites/           — composite rule specs (object, array, any_of)
+    scalars/              — scalar rule specs (type, size, format, ...)
+    composites/           — composite rule specs (object, array, any_of, ...)
+  parser/                 — parser/compiler error specs (invalid schema inputs)
   integration/
     imports/              — multi-file specs exercising $imports and $ref
       schema.yaml         — the YSS schema under test
@@ -27,7 +28,7 @@ specs/
 
 ## Spec format
 
-### Standard spec (`rules/`)
+### Standard spec (`rules/` and `parser/`)
 
 ```yaml
 feature: Short description
@@ -55,16 +56,45 @@ scenarios:
       field_name: 42
     then:
       - path: field_name
-        code: type_mismatch
+        code: "{{ CODE_TYPE }}"
         message: Unexpected type
         data:
           value: 42
           expected: string
 ```
 
-Each spec file requires `feature`, `given` and `scenarios`.
+`given` is optional at the top level when all scenarios define their own `given`.
 
-`when` is the payload to validate. It can also be a list of payloads — in that case each item is validated independently, and all are expected to produce the same `then`.
+#### Per-scenario `given`
+
+A scenario can define its own `given` to override the top-level one (or provide it when there is none). This is useful for testing parser/compiler behavior where different schemas are needed per scenario:
+
+```yaml
+feature: Parser errors
+
+scenarios:
+  - name: non-object root throws
+    given: "string"
+    then_throws: YSS schema root must be an object
+
+  - name: unexpected field value type throws
+    given:
+      age: 42
+    then_throws: "Unexpected schema value: 42"
+```
+
+#### `then_throws`
+
+Instead of `then`, a scenario can use `then_throws` to assert that building a validator from `given` raises a specific error message. The comparison is an exact string match against the error message.
+
+```yaml
+  - name: invalid schema input
+    given:
+      status:
+        - string
+        - integer
+    then_throws: 'Array field definitions are not supported...'
+```
 
 ### Integration spec (`integration/`)
 
@@ -83,6 +113,17 @@ scenarios:
     then: []
 ```
 
+#### `throws` (top-level)
+
+If loading the schema itself is expected to raise an error (e.g. an unresolvable `$ref`),
+the spec can declare a top-level `throws` instead of `scenarios`:
+
+```yaml
+throws: '$ref: unknown import namespace "unknown"'
+```
+
+The runner should attempt to load `schema.yaml` and assert that it raises the given message.
+
 <br>
 
 ## Error object format
@@ -91,7 +132,7 @@ Each error in `then` is compared against the actual validator output:
 
 ```yaml
 - path: field.nested[0].key   # dot/bracket path to the error location
-  code: type_mismatch          # error code string
+  code: "{{ CODE_TYPE }}"      # error code constant (resolved before comparison)
   message: Unexpected type     # human-readable message
   data:                        # optional — extra context (value, expected, etc.)
     value: 42
@@ -107,12 +148,12 @@ Comparison uses deep equality. The actual error must contain exactly the same ke
 `codes.yaml` contains named constants for all error codes:
 
 ```yaml
-CODE_TYPE_MISMATCH: type_mismatch
-CODE_PROP_REQUIRED: prop_required
+CODE_TYPE:    type
+CODE_REQUIRED: required
 # ...
 ```
 
-Spec files reference these constants via `{{ CODE_TYPE_MISMATCH }}` placeholders instead of literal strings. The runner is responsible for resolving them before comparing.
+Spec files reference these constants via `{{ CODE_TYPE }}` placeholders instead of literal strings. The runner is responsible for resolving them before comparing.
 
 <br>
 
@@ -136,23 +177,31 @@ function resolve_templates(value):
   else:      return as-is
 ```
 
-### Step 3 — Run rules specs
+### Step 3 — Run rules and parser specs
 
-For each `.yaml` file in `specs/rules/`:
+For each `.yaml` file in `specs/rules/` and `specs/parser/`:
 
 1. Parse the file
-2. Build a validator from `given` using your YSS parser
+2. If the file has a top-level `given`, build a default validator from it
 3. For each scenario:
-   - Validate `when` payload(s)
-   - Compare actual errors against the expected errors in `then`
+   - If the scenario has its own `given`, build a new validator from it (overrides the default)
+   - If the scenario has `then_throws`:
+     - Attempt to build a validator from `given`
+     - Assert it raises an error whose message equals `then_throws`
+   - Otherwise:
+     - Validate `when` payload(s) using the active validator
+     - Compare actual errors against the expected errors in `then`
    - Report PASS / FAIL
 
 ### Step 4 — Run integration specs
 
 For each `spec.yaml` file in `specs/integration/*/`:
 
-1. Load `schema.yaml` from the same directory (with `$imports` support)
-2. For each scenario in `spec.yaml`:
+1. Attempt to load `schema.yaml` from the same directory (with `$imports` support)
+2. If `spec.yaml` has a top-level `throws`:
+   - Assert that loading `schema.yaml` raised an error whose message equals `throws`
+   - Report PASS / FAIL and move on
+3. Otherwise, for each scenario in `spec.yaml`:
    - Validate `when` payload(s)
    - Compare actual errors against the expected errors in `then`
    - Report PASS / FAIL
