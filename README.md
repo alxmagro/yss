@@ -52,7 +52,7 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$format`     | string                  | Named alias or `/regex/` the value must match      |
 | `$in`         | string, integer, number | Value must be one of the listed values             |
 | `$not_in`     | string, integer, number | Value must not be any of the listed values         |
-| `$const`      | string, integer, number | Exact value match                                  |
+| `$const`      | string, integer, number, boolean, null | Exact value match               |
 | `$any_of`  | any                     | Value must match at least one of the listed schemas|
 | `$one_of`  | any                     | Value must match exactly one of the listed schemas |
 | `$all_of`  | any                     | Value must match all of the listed schemas         |
