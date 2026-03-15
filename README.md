@@ -44,14 +44,15 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$contains`| array                   | One or more items must match a schema              |
 | `$unique`  | array                   | No duplicate items allowed                         |
 | `$size`    | string, array, object   | Exact size or `[min, max]` range (null = unbound)  |
-| `$gt`      | integer, number         | Value must be > n                                  |
-| `$gte`     | integer, number         | Value must be >= n                                 |
-| `$lt`      | integer, number         | Value must be < n                                  |
-| `$lte`     | integer, number         | Value must be <= n                                 |
-| `$format`  | string                  | Named alias or `/regex/` the value must match      |
-| `$in`      | any                     | Value must be one of the listed values             |
-| `$not_in`  | any                     | Value must not be any of the listed values         |
-| `$const`   | any                     | Exact value match                                  |
+| `$gt`         | integer, number         | Value must be > n                                  |
+| `$gte`        | integer, number         | Value must be >= n                                 |
+| `$lt`         | integer, number         | Value must be < n                                  |
+| `$lte`        | integer, number         | Value must be <= n                                 |
+| `$multiple_of`| integer, number         | Value must be a multiple of n                      |
+| `$format`     | string                  | Named alias or `/regex/` the value must match      |
+| `$in`         | string, integer, number | Value must be one of the listed values             |
+| `$not_in`     | string, integer, number | Value must not be any of the listed values         |
+| `$const`      | string, integer, number | Exact value match                                  |
 | `$any_of`  | any                     | Value must match at least one of the listed schemas|
 | `$one_of`  | any                     | Value must match exactly one of the listed schemas |
 | `$all_of`  | any                     | Value must match all of the listed schemas         |
@@ -107,7 +108,7 @@ product:
 
 ### $required
 
-By default, every field in an object is optional, if it's absent from the payload,
+By default, every field in an object is optional — if it's absent from the payload,
 no error is raised. Use `$required` to list the fields that must be present:
 
 ```yaml
@@ -332,6 +333,30 @@ price: number, > 0
 
 <br>
 
+### $multiple_of
+
+Use `$multiple_of` to require that a numeric value is a multiple of a given number.
+It works with both integers and decimals, and accepts negative values:
+
+```yaml
+quantity:
+  $type: integer
+  $multiple_of: 10
+
+price:
+  $type: number
+  $multiple_of: 0.5
+```
+
+You can also write it inline:
+
+```yaml
+quantity: integer, % 10
+price:    number, % 0.5
+```
+
+<br>
+
 ### $format
 
 Validates that a string matches a named format. YSS ships with built-in aliases for common formats like emails, dates, UUIDs, and URLs:
@@ -512,6 +537,7 @@ simple schemas compact. Here's a summary of every rule that supports it:
 | `> n`               | `$gt: n`              |
 | `<= n`              | `$lte: n`             |
 | `< n`               | `$lt: n`              |
+| `% n`               | `$multiple_of: n`     |
 | `size n`            | `$size: n`            |
 | `size [min, max]`   | `$size: [min, max]`   |
 | `~ alias`           | `$format: alias`      |
@@ -603,7 +629,7 @@ slug:
 
 ## Implementation Guide
 
-To implement a YSS parser or validator in any language, see [SPECIFICATION.md](SPECIFICATION.md).
+To implement a YSS parser or validator in any language, see [SPECS_GUIDE.md](SPECS_GUIDE.md).
 
 <br>
 
