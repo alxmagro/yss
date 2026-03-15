@@ -57,6 +57,8 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$one_of`  | any                     | Value must match exactly one of the listed schemas |
 | `$all_of`  | any                     | Value must match all of the listed schemas         |
 
+> **Note:** For the expected error shape of each rule, see [Error Messages](docs/ERRORS.md).
+
 <br>
 
 ### $type
@@ -629,7 +631,7 @@ slug:
 
 ## Implementation Guide
 
-To implement a YSS parser or validator in any language, see [SPECS_GUIDE.md](SPECS_GUIDE.md).
+To implement a YSS parser or validator in any language, see [SPECS_GUIDE.md](docs/SPECS_GUIDE.md).
 
 <br>
 
