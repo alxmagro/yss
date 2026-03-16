@@ -12,7 +12,6 @@ Expected error shapes for each rule.
   code: "type",
   message: "Unexpected type",
   data: {
-    value: 42,
     expected: "string"
   }
 }
@@ -48,8 +47,6 @@ Exact:
   code: "size_exact",
   message: "Size must be exactly `5`",
   data: {
-    value: "hi",
-    size: 2,
     expected: 5
   }
 }
@@ -63,8 +60,6 @@ Min:
   code: "size_min",
   message: "Minimum size is `2`",
   data: {
-    value: "h",
-    size: 1,
     min: 2
   }
 }
@@ -78,8 +73,6 @@ Max:
   code: "size_max",
   message: "Maximum size is `100`",
   data: {
-    value: "...",
-    size: 123,
     max: 100
   }
 }
@@ -93,7 +86,6 @@ Max:
   code: "gt",
   message: "Value must be greater than `0`",
   data: {
-    value: 0,
     gt: 0
   }
 }
@@ -107,7 +99,6 @@ Max:
   code: "gte",
   message: "Value must be greater than or equal to `18`",
   data: {
-    value: 17,
     gte: 18
   }
 }
@@ -121,7 +112,6 @@ Max:
   code: "lt",
   message: "Value must be less than `10`",
   data: {
-    value: 10,
     lt: 10
   }
 }
@@ -135,7 +125,6 @@ Max:
   code: "lte",
   message: "Value must be less than or equal to `100`",
   data: {
-    value: 101,
     lte: 100
   }
 }
@@ -149,7 +138,6 @@ Max:
   code: "multiple_of",
   message: "Value must be a multiple of `10`",
   data: {
-    value: 25,
     multiple_of: 10
   }
 }
@@ -163,7 +151,6 @@ Max:
   code: "format",
   message: "Value does not match required format",
   data: {
-    value: "not-an-email",
     format: "email"
   }
 }
@@ -175,9 +162,8 @@ Max:
 {
   path: "field",
   code: "in",
-  message: "Value `cancelled` is not allowed",
+  message: "Value is not allowed",
   data: {
-    value: "cancelled",
     in: ["active", "inactive", "pending"]
   }
 }
@@ -205,7 +191,6 @@ Max:
   code: "const",
   message: "Value must be `admin`",
   data: {
-    value: "user",
     const: "admin"
   }
 }
