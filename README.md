@@ -3,15 +3,13 @@
 </p>
 
 <p align="center">
-  A <b>human-friendly</b> alternative to JSON Schema. Write validation schemas in clean YAML.
+  A <b>human-friendly</b> alternative to JSON Schema. Less noise, more clarity.
 </p>
 
 ## Introduction
 
-YSS is a schema language for validating JSON payloads, written in YAML.
-It is designed to be simple to read, simple to write, and simple to implement in any language.
-
-> Version 1.0.0
+YSS *(YAML Schema Syntax)* is a schema language for validating JSON payloads, written in YAML.
+It is designed to be simple to read and simple to write.
 
 <br>
 

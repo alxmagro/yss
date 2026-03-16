@@ -1,7 +1,6 @@
 # YSS Implementation Guide
 
-This repository provides a language-agnostic test suite for the **YSS (YAML Simplified Schema)**
-specification. Any YSS implementation (validator/parser) should pass these tests to ensure
+This repository provides a language-agnostic test suite for the **YSS** specification. Any YSS implementation (validator/parser) should pass these tests to ensure
 compatibility with the standard.
 
 To run these specs, you must implement a **test runner** in your language of choice.
