@@ -11,7 +11,7 @@
 YSS is a schema language for validating JSON payloads, written in YAML.
 It is designed to be simple to read, simple to write, and simple to implement in any language.
 
-> Version 0.2.0
+> Version 1.0.0
 
 <br>
 
