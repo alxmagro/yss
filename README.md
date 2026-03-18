@@ -627,6 +627,14 @@ slug:
 
 <br>
 
+## Tools
+
+| Language   | Package                                                              |
+|------------|----------------------------------------------------------------------|
+| JavaScript | [yss-validator-js](https://npmjs.com/package/yss-validator-js)      |
+
+<br>
+
 ## Implementation Guide
 
 To implement a YSS parser or validator in any language, see [SPECS_GUIDE.md](docs/SPECS_GUIDE.md).
