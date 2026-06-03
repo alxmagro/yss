@@ -6,14 +6,158 @@
   A <b>human-friendly</b> alternative to JSON Schema. Less noise, more clarity.
 </p>
 
+## Tools
+
+| Language   | Package                                                              |
+|------------|----------------------------------------------------------------------|
+| JavaScript | [yss-validator-js](https://npmjs.com/package/yss-validator-js)      |
+
+<br>
+
 ## Introduction
 
 YSS *(YAML Schema Syntax)* is a schema language for validating JSON payloads, written in YAML.
-It is designed to be simple to read and simple to write.
+It is designed to be simple to read, simple to write, and easy to reason about.
+
+Schemas mirror the structure of the JSON they validate. Validation rules are expressed through $-prefixed keywords.
+
+### Quick example
+
+Schema:
+
+```yaml
+user:
+  $required: [name, age]
+  name: string
+  age: integer, >= 18
+```
+
+Valid payload:
+
+```json
+{
+  "name": "Alexandre",
+  "age": 28
+}
+```
+
+Invalid payload:
+
+```json
+{
+  "name": "Alexandre",
+  "age": 15
+}
+```
+
+In this example:
+
+- `name` and `age` are required.
+- `name` must be a string.
+- `age` must be an integer greater than or equal to 18.
+
+<br>
+
+## Syntax styles
+
+YSS supports two equivalent ways of writing schemas:
+
+1. Block syntax, where each rule is declared explicitly;
+2. Inline syntax, a compact form for simple constraints;
+
+Choose whichever style is more readable for your use case. Both forms produce the same schema.
+
+### Block syntax
+
+In block syntax, each rule is declared on its own line:
+
+```yaml
+age:
+  $type: integer
+  $gte: 18
+  $lte: 120
+```
+
+This form is often preferred when a field contains many rules or nested structures.
+
+### Inline syntax
+
+In YSS, the `$type` rule can be written directly as the field value.
+
+The following definitions are equivalent:
+
+```yaml
+age:
+  $type: integer
+```
+
+```yaml
+age: integer
+```
+
+When a field accepts multiple types, use ` | ` on inline syntax:
+
+```yaml
+nickname:
+  $type: [string, null]
+```
+
+```yaml
+nickname: string | null
+```
+
+Additional rules can then be appended after the type using a comma-separated syntax:
+
+```yaml
+age: integer, >= 18, <= 120
+```
+
+Which is equivalent to:
+
+```yaml
+age:
+  $type: integer
+  $gte: 18
+  $lte: 120
+```
+
+**NOTE:** Unlike block syntax, inline syntax requires a type declaration. When no type validation
+is desired, use `any`:
+
+```yaml
+metadata: any
+```
+
+This shorthand keeps simple schemas compact while preserving the same behavior as the equivalent
+block form.
+
+Throughout this guide, you'll learn about each rule in detail. The table below provides a quick
+reference for every rule that supports inline syntax and its equivalent block form.
+
+| Block syntax rule              | Equivalent inline modifier |
+| ------------------------------ | -------------------------- |
+| `$type: [Type1, Type2]`        | `Type1 \| Type2`  |
+| `$type: array` + `$item: Type` | `array<Type>`     |
+| `$gte: n`                      | `>= n`            |
+| `$gt: n`                       | `> n`             |
+| `$lte: n`                      | `<= n`            |
+| `$lt: n`                       | `< n`             |
+| `$multiple_of: n`              | `% n`             |
+| `$size: n`                     | `size n`          |
+| `$size: [min, max]`            | `size [min, max]` |
+| `$format: alias`               | `~ alias`         |
+| `$in: [a, b]`                  | `in [a, b]`       |
+| `$not_in: [a, b]`              | `not_in [a, b]`   |
+| `$const: val`                  | `== val`          |
+| `$unique: true`                | `unique`          |
 
 <br>
 
 ## Types
+
+Every field in YSS is described using one or more types.
+
+The following table lists all supported types.
 
 | Type      | Validates                              |
 |-----------|----------------------------------------|
@@ -22,9 +166,9 @@ It is designed to be simple to read and simple to write.
 | `number`  | Any number, including decimals         |
 | `boolean` | `true` or `false`                      |
 | `null`    | JSON null value                        |
-| `any`     | Any value, no type check               |
 | `object`  | Key-value pairs (inferred from fields) |
 | `array`   | Ordered list                           |
+| `any`     | Any value, no type check               |
 
 <br>
 
@@ -55,27 +199,38 @@ All rules are prefixed with `$`. They can be declared in block form or inline.
 | `$one_of`  | any                     | Value must match exactly one of the listed schemas |
 | `$all_of`  | any                     | Value must match all of the listed schemas         |
 
-> **Note:** For the expected error shape of each rule, see [Error Messages](docs/ERRORS.md).
+> **NOTE:** For the expected error shape of each rule, see [Error Messages](docs/ERRORS.md).
 
 <br>
 
 ### $type
 
-`$type` is the most basic rule — it defines what kind of value a field accepts.
-It is always evaluated first, and if it fails, no other rules are checked for that field.
-The simplest form is a bare type name:
+`$type` defines what kind of value a field accepts.
+
+Type validation is always performed first. If the value does not match the declared type, no other
+rules are evaluated for that field.
+
+In its explicit form:
+
+```yaml
+name:
+  $type: string
+```
+
+The same definition can be written using inline syntax:
 
 ```yaml
 name: string
 ```
 
-This validates that `name` is a string:
+Multiple accepted types can be declared as an array:
 
-```json
-"Hello World"
+```yaml
+name:
+  $type: [string, null]
 ```
 
-To accept more than one type, separate them with `|`:
+Or using the inline union operator:
 
 ```yaml
 name: string | null
@@ -103,6 +258,28 @@ product:
   stock: integer
   available: boolean
 ```
+
+Objects provide the following rules:
+
+- `$required` — marks fields as mandatory;
+- `$strict` — rejects undeclared fields;
+
+**Arrays**
+
+Array schemas are declared with `$type: array`:
+
+```yaml
+emails:
+  $type: array
+```
+
+Arrays provide the following rules:
+
+- `$item` — validates every element;
+- `$at` — validates specific positions;
+- `$contains` — requires matching elements;
+- `$unique` — prevents duplicate values;
+- `$size` — constrains the number of elements;
 
 <br>
 
@@ -266,7 +443,7 @@ tags:
   $item: string
 ```
 
-You can also write it using inline syntax by adding `unique` as a modifier after a comma:
+Or just `unique` in inline syntax:
 
 ```yaml
 tags: array<string>, unique
@@ -277,7 +454,7 @@ tags: array<string>, unique
 ### $size
 
 Use `$size` to constrain how many elements an array can have. It accepts an exact number or a
-`[min, max]` range, where `~` (null) means unbound:
+`[min, max]` range, where `null` (or `~` in YAML shorthand) means unbound:
 
 ```yaml
 emails:
@@ -524,30 +701,6 @@ character:
 
 <br>
 
-### Inline syntax
-
-Throughout this guide you've seen rules written inline alongside the type — a shorthand that keeps
-simple schemas compact. Here's a summary of every rule that supports it:
-
-| Inline modifier     | Equivalent rule       |
-|---------------------|-----------------------|
-| `Type1 \| Type2`   | `$type: [Type1, Type2]` |
-| `array<Type>`       | `$type: array` + `$item: Type` |
-| `>= n`              | `$gte: n`             |
-| `> n`               | `$gt: n`              |
-| `<= n`              | `$lte: n`             |
-| `< n`               | `$lt: n`              |
-| `% n`               | `$multiple_of: n`     |
-| `size n`            | `$size: n`            |
-| `size [min, max]`   | `$size: [min, max]`   |
-| `~ alias`           | `$format: alias`      |
-| `in [a, b]`         | `$in: [a, b]`         |
-| `not_in [a, b]`     | `$not_in: [a, b]`     |
-| `== val`            | `$const: val`         |
-| `unique`            | `$unique: true`       |
-
-<br>
-
 ## Schema reuse with YAML anchors
 
 Within the same file, use native YAML anchors to avoid repeating structures:
@@ -624,14 +777,6 @@ slug:
   $type: string
   $format: fmt.slug
 ```
-
-<br>
-
-## Tools
-
-| Language   | Package                                                              |
-|------------|----------------------------------------------------------------------|
-| JavaScript | [yss-validator-js](https://npmjs.com/package/yss-validator-js)      |
 
 <br>
 
